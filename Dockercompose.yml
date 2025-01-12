@@ -1,0 +1,65 @@
+version: "3.8"
+
+services:
+  fastapi:
+    build:
+      context: ./Backend
+    container_name: fastapi-server
+    ports:
+      - "7060:7060"
+    volumes:
+      - ./Backend/app:/app
+    depends_on:
+      - ollama
+    environment:
+      - UVICORN_CMD=uvicorn
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8000
+      - DATABASE_URL=postgresql://user:password@db/fastapi_db
+    networks:
+      - app-network
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-server
+    ports:
+      - "11434": "11434"
+    networks:
+      - app-network
+    environment:
+      - OLLAMA_MODELS=codellama,lama3.2
+
+  code-execution:
+    image: python:3.11-slim
+    container_name: code_executor
+    command: python3 app/code.py  # Executes generated Python code
+    volumes:
+      - ./Backend/app/generated_code:/app 
+      # remplacer par no sql data lac ou un call api intern qui enregistre le code uniqument dans l environement temp
+    environment:
+      - LIMIT_MEMORY=256mb  # Example for limiting resource usage (could use cgroups)
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"  # Limit to half a CPU
+          memory: "512M"  # Limit to 256 MB of RAM
+
+  frontend:
+    build:
+      context: ./Frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - app-network
+
+#TODO
+# sonarqube
+# jenkins
+# git 
+
+networks:
+  app-network:
+    driver: bridge
+
