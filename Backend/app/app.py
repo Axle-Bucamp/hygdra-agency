@@ -5,18 +5,17 @@ from fastapi import FastAPI, HTTPException, File, UploadFile
 from datetime import datetime
 import requests
 import json
-from Backend.app.Agent.DeveloperAgent import DeveloperAgent
-from Backend.app.Agent.DevOpsAgent import DevOpsAgent
-from Backend.app.DataModel.Task import Task, TaskStatus
-from Backend.app.DataModel.Project import Project 
-from Backend.app.DataModel.Service import Service 
-from Backend.app.Agent.ProjectManagerAgent import ProjectManagerAgent
-from Backend.app.Agent.TaskAssignmentAgent import TaskAssignmentAgent
-from Backend.app.Agent.TesterAgent import TesterAgent
+from HygdraAgency.Agent.DeveloperAgent import DeveloperAgent
+from HygdraAgency.Agent.DevOpsAgent import DevOpsAgent
+from HygdraAgency.Agent.ProjectManagerAgent import ProjectManagerAgent
+from HygdraAgency.Agent.TesterAgent import TesterAgent
+from HygdraAgency.Agent.TaskAssignmentAgent import TaskAssignmentAgent
+from HygdraAgency.DataModel.Task import Task, TaskStatus
+from HygdraAgency.DataModel.Project import Project 
+from HygdraAgency.DataModel.Service import Service 
 import uvicorn
 import os
 import logfire
-from fastapi.middleware.cors import CORSMiddleware
 from typing import Annotated
 from elasticsearch import Elasticsearch, helpers
 # git make branch per part
@@ -44,6 +43,7 @@ origins = [
 # --- API Routes ---
 app = FastAPI()
 
+"""
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -51,9 +51,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+"""
 
 logfire.configure()
-logfire.instrument_fastapi(app)
+#logfire.instrument_fastapi(app)
 
 # Initialize agents
 pm_agent = ProjectManagerAgent()

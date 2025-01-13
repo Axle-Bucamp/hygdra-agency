@@ -2,11 +2,11 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from enum import Enum
 from datetime import datetime
-from Backend.app.DataModel.Task import Task, TaskStatus
-from Backend.app.DataModel.Project import Project 
-from Backend.app.DataModel.Service import Service 
-from Backend.app.Agent.BaseAgent import BaseAgent
-from Backend.app.Agent.Ollama import OllamaClient, OllamaModelConfig, OllamaPrompt, OllamaResponse
+from HygdraAgency.DataModel.Task import Task, TaskStatus
+from HygdraAgency.DataModel.Project import Project 
+from HygdraAgency.DataModel.Service import Service 
+from HygdraAgency.Agent.BaseAgent import BaseAgent
+from HygdraAgency.Agent.Ollama import OllamaClient, OllamaModelConfig, OllamaPrompt, OllamaResponse
 from os import mkdir
 import json
 

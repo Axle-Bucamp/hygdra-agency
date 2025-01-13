@@ -6,7 +6,7 @@ with open('requirements.txt') as f:
     required_packages = f.read().splitlines()
 
 setup(
-    name='HygdraBackend',
+    name='HygdraAgency',
     version='0.1',
     description='Bakend API for the Argentic Advanced project maker AI',
     long_description=open('README.md').read(),  # if you have a README file

@@ -1,0 +1,17 @@
+services:
+  frontend:
+    build:
+      context: ./Frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - app-agency
+
+
+# Define volumes to persist data
+
+
+networks:
+  app-agency:
+    driver: bridge
+

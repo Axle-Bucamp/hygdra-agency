@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   fastapi:
     build:
@@ -15,7 +13,7 @@ services:
     environment:
       - UVICORN_CMD=uvicorn
       - APP_HOST=0.0.0.0
-      - APP_PORT=7060
+      - APP_PORT=${PORT}
       - ELASTICSEARCH_HOST=http://es01:9200
     networks:
       - app-agency
@@ -24,18 +22,24 @@ services:
     image: ollama/ollama:latest
     container_name: ollama-server
     ports:
-      - "11434": "11434"
+      - 11434:11434
     networks:
       - app-agency
-    environment:
-      - OLLAMA_MODELS=codellama,lama3.2
+    command: ["ollama", "pull", "nomic-embed-text", "&&", "ollama", "pull", "codellama"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
   code-execution:
     image: python:3.11-slim
     container_name: code_executor
     command: python3 app/code.py  # Executes generated Python code
     volumes:
-      - code-local:/app 
+      - ./Backend/app/generated_code:/app 
       # replace per git clone and jenkins pipeline for live 
       # (template choice : python, node, ...)
     environment:
@@ -47,24 +51,12 @@ services:
         limits:
           cpus: "0.5"  # Limit to half a CPU
           memory: "512M"  # Limit to 256 MB of RAM
-
-  frontend:
-    build:
-      context: ./Frontend
-    ports:
-      - "3000:3000"
-    networks:
-      - app-agency
-
   es01:
-    depends_on:
-      setup:
-        condition: service_healthy
     image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
     labels:
       co.elastic.logs/module: elasticsearch
     volumes:
-      - esdata01:/usr/share/elasticsearch/data
+      - ./Backend/elastic_data:/usr/share/elasticsearch/data
     ports:
       - ${ES_PORT}:9200
     environment:
@@ -76,7 +68,7 @@ services:
       - xpack.security.enabled=true
       - xpack.security.http.ssl.enabled=false
       - xpack.license.self_generated.type=${ELASTIC_LICENSE}
-    mem_limit: ${ES_MEM_LIMIT}
+    mem_limit: 256mb
     ulimits:
       memlock:
         soft: -1
@@ -93,21 +85,6 @@ services:
     networks:
       - app-agency
 
-# Define volumes to persist data
-volumes:
- esdata01:
-   driver: local
-   driver_opts:
-      type: 'none'
-      o: 'bind'
-      device: './elastic_data'
- code-local:
-   driver: local
-   driver_opts:
-      type: 'none'
-      o: 'bind'
-      device: './Backend/app/generated_code '
-
 #TODO 
 # for production ready instead of local saved code :
 # - sonarqube
@@ -115,6 +92,6 @@ volumes:
 # - git 
 
 networks:
-  app_agency:
+  app-agency:
     driver: bridge
 
