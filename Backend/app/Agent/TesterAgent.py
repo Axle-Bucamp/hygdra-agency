@@ -16,6 +16,7 @@ import asyncio
 
 
 # --- Tester Agent ---
+# until better version only do static test
 class TestResult(BaseModel):
     passed: int
     failed: int

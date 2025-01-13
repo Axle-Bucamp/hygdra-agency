@@ -15,14 +15,19 @@ class DeveloperAgent(BaseAgent):
     def __init__(self):
         super().__init__("Dev", "Developer", 
                         OllamaModelConfig(model_name="codellama", temperature=0.2))
-        
-    async def work_on_task(self, task: Task) -> dict:
+    
+    # add rag system and tool retreival
+    # generate header for product code, task, app
+    # help the agent retreive context code (eventualy last run report per code)
+    # add a continue fonction with a loop system thought
+    async def work_on_task(self, task: Task, context : str) -> dict:
         async with OllamaClient(self.ollama_config) as ollama:
             # Generate implementation plan
             plan_prompt = OllamaPrompt(
                 prompt=f"""Task: {task.title}
                 Description: {task.description}
-                Create a detailed implementation plan.""",
+                Create a detailed implementation plan.
+                Context: {context}""",
                 system="You are a senior software developer. Create a detailed plan."
             )
             implementation_plan = await ollama.generate(plan_prompt)

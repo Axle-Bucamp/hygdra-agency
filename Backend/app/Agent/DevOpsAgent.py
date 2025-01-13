@@ -15,8 +15,10 @@ import yaml
 import asyncio
 import tempfile
 import time
+from github import Github
 
 # --- DevOps Agent ---
+# until beter version only write the code
 class JenkinsConfig(BaseModel):
     url: str = "http://localhost:8080"
     username: str = "admin"
@@ -47,7 +49,8 @@ class DevOpsAgent(BaseAgent):
         )
         self.jenkins_config = JenkinsConfig()
         self.github_config = GitHubConfig()
-        
+    
+    # generate but no execution yet   
     async def generate_ansible_playbook(self, task: Task, environment: str) -> str:
         """Generate Ansible playbook using CodeLlama"""
         async with OllamaClient(self.ollama_config) as ollama:
@@ -72,6 +75,7 @@ class DevOpsAgent(BaseAgent):
             
             return await ollama.generate(prompt)
 
+    # generate but no execution yet 
     async def generate_jenkins_pipeline(self, task: Task) -> str:
         """Generate Jenkinsfile using CodeLlama"""
         async with OllamaClient(self.ollama_config) as ollama:
@@ -96,6 +100,8 @@ class DevOpsAgent(BaseAgent):
             
             return await ollama.generate(prompt)
 
+    # static code first 
+    # local sonar project at worth
     async def run_security_checks(self, task: Task) -> dict:
         """Run security analysis using CodeLlama"""
         async with OllamaClient(self.ollama_config) as ollama:
@@ -118,6 +124,7 @@ class DevOpsAgent(BaseAgent):
             
             return json.loads(await ollama.generate(prompt))
 
+    # not now or using only known one
     async def run_jenkins_pipeline(self, pipeline_script: str) -> dict:
         """Execute Jenkins pipeline"""
         try:
@@ -162,6 +169,8 @@ class DevOpsAgent(BaseAgent):
             self.logger.error(f"Jenkins pipeline error: {str(e)}")
             return {"status": "failed", "error": str(e)}
 
+    # not now or using known one 
+    # git command 
     async def run_ansible_deployment(self, playbook_content: str, config: DeploymentConfig) -> dict:
         """Execute Ansible playbook"""
         try:
@@ -186,11 +195,11 @@ class DevOpsAgent(BaseAgent):
         except Exception as e:
             self.logger.error(f"Ansible deployment error: {str(e)}")
             return {"status": "failed", "error": str(e)}
-    """
+
     async def update_github_status(self, status: str, description: str):
         # Update GitHub deployment status
         try:
-            g = github.Github(self.github_config.token)
+            g = Github(self.github_config.token)
             repo = g.get_repo(self.github_config.repo)
             
             # Create deployment status
@@ -208,7 +217,7 @@ class DevOpsAgent(BaseAgent):
             
         except Exception as e:
             self.logger.error(f"GitHub status update error: {str(e)}")
-    """
+    
 
     async def deploy(self, task: Task) -> DeploymentResult:
         """Main deployment method"""

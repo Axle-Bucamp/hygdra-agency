@@ -18,7 +18,7 @@ setup(
     install_requires=required_packages,  # This installs packages from requirements.txt
     classifiers=[
         'Programming Language :: Python :: 3',
-        'License :: OSI Approved :: MIT License',
+        'License :: GNU',
         'Operating System :: OS Independent',
     ],
     python_requires='>=3.8',  # adjust based on your supported Python version

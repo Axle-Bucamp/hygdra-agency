@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
 from enum import Enum
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, File, UploadFile
 from datetime import datetime
 import requests
 import json
@@ -17,6 +17,22 @@ import uvicorn
 import os
 import logfire
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Annotated
+from elasticsearch import Elasticsearch, helpers
+
+# initialise elastic search
+#TODO
+# connect retreive project instancce
+# rag system per project, task
+# external ile to enbeding per project
+
+#TODO
+# add a get all project name
+# add a get project properties
+# add a file viewer vscode web for generated code
+# add an external file management
+# code to embeding (header file func resune )
+# file to enbeding 
 
 # Allow all origins for now (you can configure this more securely for production)
 origins = [
@@ -57,6 +73,12 @@ async def create_project(name: str, description: str):
     json.dump(project)
     return project
 
+# post file to collection
+# make local rag collection system or logfire
+@app.post("/projects/{project_id}/ressources/")
+async def create_file(file: Annotated[bytes, File()]):
+    return {"file_size": len(file)}
+
 @app.post("/projects/{project_id}/next-task")
 async def process_next_task(project_id: str):
     if project_id not in active_projects:
@@ -74,8 +96,9 @@ async def process_next_task(project_id: str):
     
     # Process task based on agent type
     # add ragged data + API doc + web tool + react
+    # ragged external ressources external_ressources
     if isinstance(assigned_agent, DeveloperAgent):
-        result = await assigned_agent.work_on_task(task)
+        result = await assigned_agent.work_on_task(task, project.description)
 
     # work on later TODO
     elif isinstance(assigned_agent, DevOpsAgent):
