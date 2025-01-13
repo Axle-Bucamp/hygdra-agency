@@ -11,13 +11,14 @@ services:
       - ./Backend/app:/app
     depends_on:
       - ollama
+      - es01
     environment:
       - UVICORN_CMD=uvicorn
       - APP_HOST=0.0.0.0
-      - APP_PORT=8000
-      - DATABASE_URL=postgresql://user:password@db/fastapi_db
+      - APP_PORT=7060
+      - ELASTICSEARCH_HOST=http://es01:9200
     networks:
-      - app-network
+      - app-agency
 
   ollama:
     image: ollama/ollama:latest
@@ -25,7 +26,7 @@ services:
     ports:
       - "11434": "11434"
     networks:
-      - app-network
+      - app-agency
     environment:
       - OLLAMA_MODELS=codellama,lama3.2
 
@@ -34,12 +35,13 @@ services:
     container_name: code_executor
     command: python3 app/code.py  # Executes generated Python code
     volumes:
-      - ./Backend/app/generated_code:/app 
-      # remplacer par no sql data lac ou un call api intern qui enregistre le code uniqument dans l environement temp
+      - code-local:/app 
+      # replace per git clone and jenkins pipeline for live 
+      # (template choice : python, node, ...)
     environment:
       - LIMIT_MEMORY=256mb  # Example for limiting resource usage (could use cgroups)
     networks:
-      - app-network
+      - app-agency
     deploy:
       resources:
         limits:
@@ -52,14 +54,67 @@ services:
     ports:
       - "3000:3000"
     networks:
-      - app-network
+      - app-agency
 
-#TODO
-# sonarqube
-# jenkins
-# git 
+  es01:
+    depends_on:
+      setup:
+        condition: service_healthy
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    labels:
+      co.elastic.logs/module: elasticsearch
+    volumes:
+      - esdata01:/usr/share/elasticsearch/data
+    ports:
+      - ${ES_PORT}:9200
+    environment:
+      - node.name=es01
+      - cluster.name=${CLUSTER_NAME}
+      - discovery.type=single-node
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - xpack.license.self_generated.type=${ELASTIC_LICENSE}
+    mem_limit: ${ES_MEM_LIMIT}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl https://localhost:9200",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 120
+    networks:
+      - app-agency
+
+# Define volumes to persist data
+volumes:
+ esdata01:
+   driver: local
+   driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: './elastic_data'
+ code-local:
+   driver: local
+   driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: './Backend/app/generated_code '
+
+#TODO 
+# for production ready instead of local saved code :
+# - sonarqube
+# - jenkins
+# - git 
 
 networks:
-  app-network:
+  app_agency:
     driver: bridge
 

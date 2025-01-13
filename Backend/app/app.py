@@ -19,6 +19,7 @@ import logfire
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Annotated
 from elasticsearch import Elasticsearch, helpers
+# git make branch per part
 
 # initialise elastic search
 #TODO
