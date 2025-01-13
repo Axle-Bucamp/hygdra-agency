@@ -15,7 +15,8 @@ RUN npm install
 COPY . .
 
 # Build the React app for production
-RUN npm run build
+RUN npm run 
+# build
 
 # Step 2: Serve the built app using Nginx
 # Use official Nginx image to serve the build folder

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = "http://localhost:8000";  // Change this to your backend's API URL
+const API_URL = "http://localhost:7060";  // Change this to your backend's API URL
 
 export const createProject = async (name, description) => {
   try {
