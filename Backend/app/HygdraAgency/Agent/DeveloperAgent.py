@@ -9,7 +9,6 @@ from HygdraAgency.DataModel.Service import Service
 from HygdraAgency.Agent.BaseAgent import BaseAgent
 from HygdraAgency.Agent.Ollama import OllamaClient, OllamaModelConfig, OllamaPrompt, OllamaResponse
 
-
 # --- Enhanced Developer Agent with Code Generation ---
 class DeveloperAgent(BaseAgent):
     def __init__(self):

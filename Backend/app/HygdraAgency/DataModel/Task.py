@@ -2,17 +2,14 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
 from enum import Enum
 from datetime import datetime
-from dataclasses import dataclass
 
 # --- Models ---
-@dataclass
 class TaskStatus(str, Enum):
     TODO = "todo"
     IN_PROGRESS = "in_progress"
     REVIEW = "review"
     DONE = "done"
 
-@dataclass
 class Task(BaseModel):
     id: str
     title: str

@@ -8,7 +8,6 @@ from HygdraAgency.DataModel.Service import Service
 from HygdraAgency.Agent.BaseAgent import BaseAgent
 from HygdraAgency.Agent.Ollama import OllamaClient, OllamaModelConfig, OllamaPrompt, OllamaResponse
 from os import mkdir
-import json
 
 # --- Enhanced Project Manager Agent ---
 class ProjectManagerAgent(BaseAgent):
@@ -32,7 +31,7 @@ class ProjectManagerAgent(BaseAgent):
                 Break down the project into actionable tasks.
                 Provide a clear and structured to-do list that is easy to follow, ensuring each task has a specific goal and actionable steps.
                 ]""",
-                system=f"""You are a technical project manager."""
+                system="You are a technical project manager."
             )
             
             task_breakdown = await ollama.generate(task_prompt)
@@ -40,14 +39,19 @@ class ProjectManagerAgent(BaseAgent):
             task_prompt = OllamaPrompt(
                 prompt=f"""Project Name: {project_name}
                 Description: {description}
+                
+                
 
                 --- Request
                 Create a detailed to-do list for this software project optimized for other LLM agent.
                 The Task list focus only on technical part.
                 Break down the project into actionable tasks.
                 Provide a clear and structured to-do list that is easy to follow, ensuring each task has a specific goal and actionable steps.
+                
+                --- previous work :
+                {task_breakdown}
                 """,
-                system=f"""You are a technical project manager."""
+                system="You are a technical project manager."
             )
             
             task_breakdown = await ollama.generate(task_prompt)
@@ -68,8 +72,11 @@ class ProjectManagerAgent(BaseAgent):
                 --- important
                 each task is detailed within only one line.
                 return only the task list.
+
+                --- previous work :
+                {task_breakdown}
                 """,
-                system=f"""You are a technical project manager."""
+                system="You are a technical project manager."
             )
             
             task_breakdown = await ollama.generate(task_prompt)
@@ -99,7 +106,7 @@ class ProjectManagerAgent(BaseAgent):
                         ))
 
             project = Project(
-                id=f"proj-{datetime.now().timestamp()}",
+                id=f"proj-{datetime.now().timestamp()}-{project_name}",
                 name=project_name,
                 description=project_desc,
                 tasks=tasks

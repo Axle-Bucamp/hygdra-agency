@@ -16,11 +16,13 @@ import asyncio
 import tempfile
 import time
 from github import Github
+import os
+import json
 
 # --- DevOps Agent ---
 # until beter version only write the code
 class JenkinsConfig(BaseModel):
-    url: str = "http://localhost:8080"
+    url: str = os.getenv("JENKINS_URL")
     username: str = "admin"
     token: str = ""
     

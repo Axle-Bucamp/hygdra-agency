@@ -1,1 +1,1 @@
-__all__ = ["Agent", "DataModel"]
+__all__ = ["Agent", "DataModel", "utils"]

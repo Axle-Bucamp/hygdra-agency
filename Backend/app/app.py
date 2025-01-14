@@ -18,6 +18,10 @@ import os
 import logfire
 from typing import Annotated
 from elasticsearch import Elasticsearch, helpers
+import HygdraAgency.utils.rag as rag
+
+
+
 # git make branch per part
 
 # initialise elastic search
@@ -34,24 +38,9 @@ from elasticsearch import Elasticsearch, helpers
 # code to embeding (header file func resune )
 # file to enbeding 
 
-# Allow all origins for now (you can configure this more securely for production)
-origins = [
-    "http://0.0.0.0:3000",  # React default port
-]
-
 # Initialize agents
 # --- API Routes ---
 app = FastAPI()
-
-"""
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-"""
 
 logfire.configure()
 #logfire.instrument_fastapi(app)
@@ -63,23 +52,27 @@ dev_agent = DeveloperAgent()
 devops_agent = DevOpsAgent()
 tester_agent = TesterAgent()
 
-available_agents = [dev_agent, devops_agent, tester_agent]
+available_agents = [dev_agent, tester_agent] # devops_agent
 active_projects: Dict[str, Project] = {}
 
 @app.post("/projects/")
 async def create_project(name: str, description: str):
     project = await pm_agent.initialize_project(name, description)
-    os.mkdir("project/" + project.id)
+    os.mkdir("generated_code/" + project.id)
     active_projects[project.id] = project
-
-    json.dump(project)
+    
+    rag.create_index(str(project.id))
+    # rag.insert_doc(str(project.id), project.description)
     return project
 
-# post file to collection
-# make local rag collection system or logfire
 @app.post("/projects/{project_id}/ressources/")
-async def create_file(file: Annotated[bytes, File()]):
-    return {"file_size": len(file)}
+async def create_file(project_id: str, file: Annotated[bytes, File()]):
+    if project_id in active_projects:
+        rag.insert_doc(file)
+        return {"message": f"File for project {project_id} successfully uploaded!"}
+    else:
+        # Return an error if the project is not active
+        return {"error": "Project not active", "project_id": project_id}
 
 @app.post("/projects/{project_id}/next-task")
 async def process_next_task(project_id: str):
@@ -149,6 +142,9 @@ def start():
     #TODO : 
     # pylint static code analyser
     # bandit static code analyser
+    # simple tchat function with agent
+    # continue or work on function to target specfic code
+    # continuous elastic search update
     
     # Start the server
     uvicorn.run(

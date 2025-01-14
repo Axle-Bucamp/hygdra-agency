@@ -4,11 +4,13 @@ from enum import Enum
 from fastapi import HTTPException
 import json
 import aiohttp
+import asyncio
+import os
 
 # --- Ollama Models ---
 class OllamaModelConfig(BaseModel):
     model_name: str = "codellama"
-    base_url: HttpUrl = "http://localhost:11434"
+    base_url: HttpUrl = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")# ollama url
     temperature: float = 0.7
     top_p: float = 0.9
     max_tokens: int = 2048
@@ -80,3 +82,15 @@ class OllamaClient:
                     continue
                 
             return full_response
+
+# Running the test
+async def main():
+    print("test")
+    model = OllamaClient(OllamaModelConfig(model_name="codellama", temperature=0.7))
+    async with model:
+        response = await model.generate(OllamaPrompt(prompt="hey"))
+        print(response)
+
+# Entry point
+if __name__ == "__main__":
+    asyncio.run(main())  # This properly runs the async function

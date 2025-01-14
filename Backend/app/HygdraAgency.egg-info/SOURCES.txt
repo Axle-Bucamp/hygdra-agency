@@ -18,3 +18,7 @@ HygdraAgency/DataModel/Project.py
 HygdraAgency/DataModel/Service.py
 HygdraAgency/DataModel/Task.py
 HygdraAgency/DataModel/__init__.py
+HygdraAgency/utils/__init__.py
+HygdraAgency/utils/embedding.py
+HygdraAgency/utils/rag.py
+HygdraAgency/utils/viz.py
