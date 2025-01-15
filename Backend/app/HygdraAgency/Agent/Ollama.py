@@ -6,6 +6,7 @@ import json
 import aiohttp
 import asyncio
 import os
+import requests 
 
 # --- Ollama Models ---
 class OllamaModelConfig(BaseModel):
@@ -82,6 +83,18 @@ class OllamaClient:
                     continue
                 
             return full_response
+        
+    async def embeddings(self, texts: List[str]):
+        url = os.env("OLLAMA_URL") + "/v1/embeddings"
+        headers = {"Content-Type": "application/json"}
+        data = {
+                "model": "nomic-embed-text", 
+                "texts": texts 
+        }
+
+        response = requests.post(url, json=data, headers=headers)
+        embeddings = response.json().get("data", [])
+        return embeddings
 
 # Running the test
 async def main():

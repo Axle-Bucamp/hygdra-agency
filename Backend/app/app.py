@@ -58,11 +58,11 @@ active_projects: Dict[str, Project] = {}
 @app.post("/projects/")
 async def create_project(name: str, description: str):
     project = await pm_agent.initialize_project(name, description)
-    os.mkdir("generated_code/" + project.id)
+    os.mkdir("generated_code/{project.id}")
     active_projects[project.id] = project
     
-    rag.create_index(str(project.id))
-    # rag.insert_doc(str(project.id), project.description)
+    rag.build_search_index(str(project.id))
+    rag.store_document(context=rag.deps(project, 5), document=rag.Document(project.name, "generated_code/{project.id}", project.description))
     return project
 
 @app.post("/projects/{project_id}/ressources/")

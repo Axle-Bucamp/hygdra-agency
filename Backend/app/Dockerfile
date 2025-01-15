@@ -2,7 +2,7 @@
 FROM python:3.11-slim
 
 # Set working directory
-COPY app /app
+COPY . /app
 WORKDIR /app
 
 # Install dependencies

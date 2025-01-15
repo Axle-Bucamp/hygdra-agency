@@ -7,7 +7,6 @@ services:
     networks:
       - app-agency
 
-
 # Define volumes to persist data
 
 

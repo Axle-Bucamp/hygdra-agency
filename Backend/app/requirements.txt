@@ -20,3 +20,5 @@ bandit
 pygithub
 python-multipart
 pydantic_ai
+chromadb
+ollama
