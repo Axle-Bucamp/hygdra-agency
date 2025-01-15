@@ -24,6 +24,7 @@ class Document:
     content: str
     
 async def retrieve(context: RunContext[Deps], search_query: str) -> str:
+    "retreive context document based on query search"
     collection = context.client.get_collection(name=context.project.id)
     response = ollama.embeddings(model="nomic-embed-text", prompt=search_query)
     results = collection.query(
@@ -37,31 +38,37 @@ async def retrieve(context: RunContext[Deps], search_query: str) -> str:
     )
 
 async def store_document(context: RunContext[Deps], document:Document):
+    "Store document in a vector search database "
     collection = context.client.get_collection(name=context.project.id)
     embedding = ollama.embeddings(model="nomic-embed-text", prompt=document.content)
 
     collection.add(
-        ids=[str(i)],
+        ids=[str(embedding)],
         embeddings=[embedding],
         documents=[document]
     )
 
-async def store_document(context: RunContext[Deps], document:Document):
-    collection = context.client.get_collection(name=context.project.id)
+# make an url download version ? way to unsafe ?
+async def store_external_document(index:str, document:Document):
+    "store user imported file"
+    client = chromadb.HttpClient(host=os.getenv("CHROME_DB_IP", "127.0.0.1"), port = os.getenv("CHROME_DB_PORT", "2500"), settings=Settings(allow_reset=True, anonymized_telemetry=False))
+    collection = client.get_collection(name=index)
     embedding = ollama.embeddings(model="nomic-embed-text", prompt=document.content)
 
     collection.add(
-        ids=[str(i)],
+        ids=[str(embedding)],
         embeddings=[embedding],
         documents=[document]
     )
 
 async def build_search_index(name: str):
+    "init new rag for project"
     client = chromadb.HttpClient(host=os.getenv("CHROME_DB_IP", "127.0.0.1"), port = os.getenv("CHROME_DB_PORT", "2500"), settings=Settings(allow_reset=True, anonymized_telemetry=False))
     client.create_collection(name=name)
 
 # Function to slugify URL-friendly strings
 def slugify(value: str, separator: str, unicode: bool = False) -> str:
+    "slugify url for better display"
     if not unicode:
         value = unicodedata.normalize('NFKD', value)
         value = value.encode('ascii', 'ignore').decode('ascii')
