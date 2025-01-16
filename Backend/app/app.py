@@ -106,11 +106,11 @@ async def create_project(name: str, description: str):
           will be propagated as an HTTP error response.
     """
     project = await pm_agent.initialize_project(name, description)
-    os.mkdir("generated_code/{project.id}")
+    os.mkdir(f"generated_code/{project.id}")
     active_projects[project.id] = project
     
     rag.build_search_index(str(project.id))
-    rag.store_document(context=rag.deps(project, 5), document=rag.Document(project.name, "generated_code/{project.id}", project.description))
+    rag.store_document(context=rag.Deps(project, 5), document=rag.Document(project.name, "generated_code/{project.id}", project.description))
     return project
 
 @app.post("/projects/{project_id}/ressources/")
@@ -149,12 +149,52 @@ async def create_file(project_id: str, file: UploadFile):
         - Any exceptions related to the file upload or `rag.store_external_document` may propagate as HTTP error responses.
     """
     contents = await file.read()
-    if project_id in active_projects:
-        rag.store_external_document(index=project_id, document=rag.Document(project_id, file.filename, contents))
+    active_projects_ids = [project.id for project in active_projects]
+    if project_id in active_projects_ids:
+        project = active_projects[active_projects_ids.index(project_id)]
+        rag.store_document(rag.Deps(project, 5), rag.Document(project_id, file.filename, contents))
         return {"message": f"File for project {project_id} successfully uploaded!"}
     else:
         # Return an error if the project is not active
         return {"error": "Project not active", "project_id": project_id}
+
+@app.post("/projects/get-all")
+async def get_all():   
+    return active_projects
+
+@app.post("/projects/get-by-id")
+async def get(project_id: str):  
+    active_projects_ids = [project.id for project in active_projects]
+    if project_id in active_projects_ids :
+        return active_projects[active_projects_ids.index(project_id)]
+    else :
+        return {"error" : "no project with id"}
+
+@app.post("/projects/get-by-name")
+async def get(project_title: str):  
+    active_projects_title = [project.title for project in active_projects]
+    if project_title in active_projects_title :
+        return active_projects[active_projects_title.index(project_title)]
+    else :
+        return {"error" : "no project with title"}
+
+@app.post("/projects/get-by-request")
+async def get(request: str):  
+    # all project rag and retreiver
+    if 1 in [1,2] :
+        return {"message" : "todo"}
+    else :
+        return {"error" : "no project with id"}
+
+# get project per context  
+
+@app.post("/projects/{project_id}/tchat/")
+async def tchat_with_context(project_id: str, request:str):
+    active_projects_ids = [project.id for project in active_projects]
+    if project_id in active_projects_ids :
+        response = ProjectManagerAgent.tchat(active_projects[active_projects_ids.index(project_id)], request)
+
+    return {"request" : request, "response": response}
 
 @app.post("/projects/{project_id}/next-task")
 async def process_next_task(project_id: str):
@@ -216,10 +256,8 @@ async def process_next_task(project_id: str):
     task.assigned_to = assigned_agent.name
     
     # Process task based on agent type
-    # add ragged data + API doc + web tool
-    # ragged external ressources external_ressources
     if isinstance(assigned_agent, DeveloperAgent):
-        result = await assigned_agent.work_on_task(task, project.description)
+        result = await assigned_agent.work_on_task(task, project)
 
     # work on later TODO
     elif isinstance(assigned_agent, DevOpsAgent):

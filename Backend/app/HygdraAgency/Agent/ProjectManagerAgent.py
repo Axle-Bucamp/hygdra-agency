@@ -8,6 +8,8 @@ from HygdraAgency.DataModel.Service import Service
 from HygdraAgency.Agent.BaseAgent import BaseAgent
 from HygdraAgency.Agent.Ollama import OllamaClient, OllamaModelConfig, OllamaPrompt, OllamaResponse
 from os import mkdir
+from HygdraAgency.utils.rag import retrieve, Deps, Document, store_document
+
 
 # --- Enhanced Project Manager Agent ---
 class ProjectManagerAgent(BaseAgent):
@@ -106,9 +108,37 @@ class ProjectManagerAgent(BaseAgent):
                         ))
 
             project = Project(
-                id=f"proj-{datetime.now().timestamp()}-{project_name}",
+                id=f"proj-{str(datetime.now().timestamp())}-{project_name}",
                 name=project_name,
                 description=project_desc,
                 tasks=tasks
             )
             return project
+        
+    async def tchat(self, project:Project, request:str) -> str:
+        async with OllamaClient(self.ollama_config) as ollama:
+            # Generate implementation plan
+            plan_prompt = OllamaPrompt(
+                prompt=f"""request: {request}
+                Description: {project.tasks}
+                Which external ressources might be requiered to answer this request?
+                Context: {project.description}""",
+                system="You are a senior software developer. Create a detailed plan."
+            )
+
+            external_ressources = await ollama.generate(plan_prompt)
+            external_ressources = retrieve(project, external_ressources)
+
+            plan_prompt = OllamaPrompt(
+                prompt=f"""Task: {request}
+                Create a detailed implementation plan.
+                Decompose those task into different code file.
+                Context: {project.description}
+                external ressources : {external_ressources}
+                """,
+                system="You are a senior software developer. Create a detailed plan."
+            )
+
+            implementation_plan = await ollama.generate(plan_prompt) 
+            return implementation_plan
+

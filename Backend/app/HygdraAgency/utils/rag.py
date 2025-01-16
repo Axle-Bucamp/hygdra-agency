@@ -1,6 +1,6 @@
+from __future__ import annotations as _annotations
 import os
 from chromadb.config import Settings
-from __future__ import annotations as _annotations
 import re
 import unicodedata
 from dataclasses import dataclass
