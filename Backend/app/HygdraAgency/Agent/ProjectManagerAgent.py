@@ -29,7 +29,7 @@ class ProjectManagerAgent(BaseAgent):
                 plan the action you need to tak to generate the following request :
                 [
                 Create a detailed to-do list for this software project optimized for other LLM agent.
-                The Task list focus only on technical part.
+                The Task list focus only on coding and dev task.
                 Break down the project into actionable tasks.
                 Provide a clear and structured to-do list that is easy to follow, ensuring each task has a specific goal and actionable steps.
                 ]""",
@@ -46,7 +46,7 @@ class ProjectManagerAgent(BaseAgent):
 
                 --- Request
                 Create a detailed to-do list for this software project optimized for other LLM agent.
-                The Task list focus only on technical part.
+                The Task list focus only on coding and dev task.
                 Break down the project into actionable tasks.
                 Provide a clear and structured to-do list that is easy to follow, ensuring each task has a specific goal and actionable steps.
                 
@@ -64,7 +64,7 @@ class ProjectManagerAgent(BaseAgent):
 
                 --- Request
                 ensure the to-do list for this software project is optimized for other LLM agent.
-                The Task list focus only on technical part.
+                The Task list focus only on coding and dev task.
                 The task description must be optimised for an LLM agent to build it.
                 Format the task list into the following patern:
                 1) [taskName] : [TaskDescription]
@@ -139,6 +139,6 @@ class ProjectManagerAgent(BaseAgent):
                 system="You are a senior software developer. Create a detailed plan."
             )
 
-            implementation_plan = await ollama.generate(plan_prompt) 
-            return implementation_plan
+            response = await ollama.generate(plan_prompt) 
+            return response
 

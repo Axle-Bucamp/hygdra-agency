@@ -109,8 +109,8 @@ async def create_project(name: str, description: str):
     os.mkdir(f"generated_code/{project.id}")
     active_projects[project.id] = project
     
-    rag.build_search_index(str(project.id))
-    rag.store_document(context=rag.Deps(project, 5), document=rag.Document(project.name, "generated_code/{project.id}", project.description))
+    rr = await rag.build_search_index(str(project.id))
+    rr = await rag.store_document(context=rag.Deps(project, 5), document=rag.Document(project.name, "generated_code/{project.id}", project.description))
     return project
 
 @app.post("/projects/{project_id}/ressources/")
@@ -149,9 +149,8 @@ async def create_file(project_id: str, file: UploadFile):
         - Any exceptions related to the file upload or `rag.store_external_document` may propagate as HTTP error responses.
     """
     contents = await file.read()
-    active_projects_ids = [project.id for project in active_projects]
-    if project_id in active_projects_ids:
-        project = active_projects[active_projects_ids.index(project_id)]
+    if project_id in active_projects:
+        project = active_projects[project_id]
         rag.store_document(rag.Deps(project, 5), rag.Document(project_id, file.filename, contents))
         return {"message": f"File for project {project_id} successfully uploaded!"}
     else:
@@ -164,15 +163,14 @@ async def get_all():
 
 @app.post("/projects/get-by-id")
 async def get(project_id: str):  
-    active_projects_ids = [project.id for project in active_projects]
-    if project_id in active_projects_ids :
-        return active_projects[active_projects_ids.index(project_id)]
+    if project_id in active_projects :
+        return active_projects[project_id]
     else :
         return {"error" : "no project with id"}
 
 @app.post("/projects/get-by-name")
 async def get(project_title: str):  
-    active_projects_title = [project.title for project in active_projects]
+    active_projects_title = [project.title for pid, project in active_projects]
     if project_title in active_projects_title :
         return active_projects[active_projects_title.index(project_title)]
     else :
@@ -187,12 +185,10 @@ async def get(request: str):
         return {"error" : "no project with id"}
 
 # get project per context  
-
 @app.post("/projects/{project_id}/tchat/")
 async def tchat_with_context(project_id: str, request:str):
-    active_projects_ids = [project.id for project in active_projects]
-    if project_id in active_projects_ids :
-        response = ProjectManagerAgent.tchat(active_projects[active_projects_ids.index(project_id)], request)
+    if project_id in active_projects :
+        response = ProjectManagerAgent.tchat(active_projects[project_id], request)
 
     return {"request" : request, "response": response}
 
@@ -254,21 +250,24 @@ async def process_next_task(project_id: str):
     # Update task status
     task.status = TaskStatus.IN_PROGRESS
     task.assigned_to = assigned_agent.name
-    
+    result = ""
+
     # Process task based on agent type
     if isinstance(assigned_agent, DeveloperAgent):
         result = await assigned_agent.work_on_task(task, project)
 
     # work on later TODO
     elif isinstance(assigned_agent, DevOpsAgent):
-        result = await assigned_agent.deploy(task)
+        #result = await assigned_agent.deploy(task)
+        pass
 
     elif isinstance(assigned_agent, TesterAgent):
-        result = await assigned_agent.run_tests(task)
+        #result = await assigned_agent.run_tests(task)
+        pass
     
     # Update task status based on result
     task.status = TaskStatus.DONE
-    project = await pm_agent.update_task_status(project, task.id, TaskStatus.DONE)
+    # project = await pm_agent.update_task_status(project, task.id, TaskStatus.DONE)
     
     return {
         "task": task,

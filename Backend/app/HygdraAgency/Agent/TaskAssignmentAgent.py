@@ -8,6 +8,14 @@ from HygdraAgency.DataModel.Project import Project
 from HygdraAgency.DataModel.Service import Service 
 from HygdraAgency.Agent.BaseAgent import BaseAgent
 from HygdraAgency.Agent.Ollama import OllamaClient, OllamaModelConfig, OllamaPrompt, OllamaResponse
+import re
+
+
+def find_first_float(string):
+    match = re.search(r'-?\d*\.\d+', string)
+    if match:
+        return float(match.group(0))
+    return 0.5
 
 # --- Task Assignment Agent ---
 class TaskAssignmentAgent(BaseAgent):
@@ -18,7 +26,7 @@ class TaskAssignmentAgent(BaseAgent):
             OllamaModelConfig(model_name="codellama", temperature=0.2)
         )
 
-    async def analyze_task_requirements(self, task: Task, context: str) -> dict:
+    async def analyze_task_requirements(self, task: Task) -> dict:
         async with OllamaClient(self.ollama_config) as ollama:
             prompt = OllamaPrompt(
                 prompt=f"""
@@ -33,8 +41,6 @@ class TaskAssignmentAgent(BaseAgent):
                 - estimated_duration: in hours
                 - best_role: Developer/Tester/DevOps
 
-                --- Context Project
-                {context}
                 """,
                 system="You are a technical project coordinator. Analyze tasks and determine required expertise."
             )
@@ -61,7 +67,8 @@ class TaskAssignmentAgent(BaseAgent):
                 
                 Task Requirements:
                 {json.dumps(task_requirements, indent=2)}
-                
+
+                --- important :
                 Return a single number between 0 and 1 representing the match score.
                 Higher scores indicate better matches.
                 Only return the number, no other text.
@@ -70,20 +77,18 @@ class TaskAssignmentAgent(BaseAgent):
             )
             
             try:
-                score = float(await ollama.generate(prompt))
+                score = find_first_float(await ollama.generate(prompt))
+                print(score)
                 return min(max(score, 0), 1)  # Ensure score is between 0 and 1
             except ValueError:
                 self.logger.error("Failed to get valid score from LLM")
                 return 0.5
 
-    async def assign_next_task(self, project: Project, available_agents: List[BaseAgent]) -> tuple[Task, BaseAgent]:
+    async def assign_next_task(self, project:Project, available_agents: List[BaseAgent]) -> tuple[Task, BaseAgent]:
         # Find tasks that are ready to be worked on (all dependencies completed)
         ready_tasks = [
             task for task in project.tasks 
-            if task.status == TaskStatus.TODO and 
-            all(dep_task.status == TaskStatus.DONE 
-                for dep_task in project.tasks 
-                if dep_task.id in task.dependencies)
+            if task.status == TaskStatus.TODO or task.status == TaskStatus.IN_PROGRESS
         ]
         
         if not ready_tasks:
@@ -95,9 +100,12 @@ class TaskAssignmentAgent(BaseAgent):
         best_task = None
         best_agent = None
 
+        # best task diff best agent, select task first
         for task in ready_tasks:
             # Get task requirements
-            requirements = await self.analyze_task_requirements(task, project.description)
+            # task priority
+            # task dependency
+            requirements = await self.analyze_task_requirements(task)
             
             # Evaluate each available agent
             for agent in available_agents:
@@ -107,6 +115,11 @@ class TaskAssignmentAgent(BaseAgent):
                     best_score = score
                     best_task = task
                     best_agent = agent
+                    if best_score > 0.80:
+                        break
+                    
+            if best_score > 0.80:
+                break
         
         if best_score >= 0.6:  # Minimum threshold for assignment
             self.logger.info(f"Assigning task '{best_task.title}' to {best_agent.role} (match score: {best_score})")
@@ -114,14 +127,12 @@ class TaskAssignmentAgent(BaseAgent):
         else:
             # Fallback to basic assignment if no good match found
             task = ready_tasks[0]
-            if "dev" in task.id:
+            if TaskStatus.TODO == task.status:
                 agent = next((a for a in available_agents if a.role == "Developer"), None)
-            elif "test" in task.id:
+            elif TaskStatus.REVIEW == task.status:
                 agent = next((a for a in available_agents if a.role == "Tester"), None)
-            elif "deploy" in task.id:
-                agent = next((a for a in available_agents if a.role == "DevOps"), None)
             else:
-                agent = available_agents[0]
+                agent = next((a for a in available_agents if a.role == "DevOps"), None)
             
             self.logger.warn(f"Using fallback assignment for task '{task.title}' to {agent.role}")
             return task, agent
