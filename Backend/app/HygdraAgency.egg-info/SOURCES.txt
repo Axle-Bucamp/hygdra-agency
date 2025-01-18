@@ -14,7 +14,6 @@ HygdraAgency/Agent/ProjectManagerAgent.py
 HygdraAgency/Agent/TaskAssignmentAgent.py
 HygdraAgency/Agent/TesterAgent.py
 HygdraAgency/Agent/__init__.py
-HygdraAgency/Agent/test_request.py
 HygdraAgency/DataModel/Project.py
 HygdraAgency/DataModel/Service.py
 HygdraAgency/DataModel/Task.py

@@ -28,10 +28,12 @@ class ProjectManagerAgent(BaseAgent):
                 --- Request
                 plan the action you need to tak to generate the following request :
                 [
-                Create a detailed to-do list for this software project optimized for other LLM agent.
+                Create a detailed to-do list to build this software project.
+                optimized it for other LLM agent.
                 The Task list focus only on coding and dev task.
                 Break down the project into actionable tasks.
-                Provide a clear and structured to-do list that is easy to follow, ensuring each task has a specific goal and actionable steps.
+                Provide a clear and structured to-do list that is easy to follow, 
+                ensuring each task has a specific goal and actionable steps.
                 ]""",
                 system="You are a technical project manager."
             )
@@ -42,13 +44,13 @@ class ProjectManagerAgent(BaseAgent):
                 prompt=f"""Project Name: {project_name}
                 Description: {description}
                 
-                
-
                 --- Request
-                Create a detailed to-do list for this software project optimized for other LLM agent.
+                Create a detailed to-do list to build this software project.
+                optimized it for other LLM agent.
                 The Task list focus only on coding and dev task.
                 Break down the project into actionable tasks.
-                Provide a clear and structured to-do list that is easy to follow, ensuring each task has a specific goal and actionable steps.
+                Provide a clear and structured to-do list that is easy to follow, 
+                ensuring each task has a specific goal and actionable steps.
                 
                 --- previous work :
                 {task_breakdown}
@@ -57,62 +59,18 @@ class ProjectManagerAgent(BaseAgent):
             )
             
             task_breakdown = await ollama.generate(task_prompt)
-
-            task_prompt = OllamaPrompt(
-                prompt=f"""Project Name: {project_name}
-                Description: {description}
-
-                --- Request
-                ensure the to-do list for this software project is optimized for other LLM agent.
-                The Task list focus only on coding and dev task.
-                The task description must be optimised for an LLM agent to build it.
-                Format the task list into the following patern:
-                1) [taskName] : [TaskDescription]
-                2) [taskName] : [TaskDescription]
-                3) [taskName] : [TaskDescription]
-
-                --- important
-                each task is detailed within only one line.
-                return only the task list.
-
-                --- previous work :
-                {task_breakdown}
-                """,
-                system="You are a technical project manager."
-            )
-            
-            task_breakdown = await ollama.generate(task_prompt)
-
-            
-            # Parse task breakdown and create Task objects
-            tasks = []
-            for i, line in enumerate(task_breakdown.split("\n")):
-                line = line.strip()
-                if line:  # Ignore empty lines
-                    # Split by the first occurrence of ":" to avoid issues with descriptions containing ":"
-                    if ":" in line:
-                        title, description = line.split(":", 1)
-                        tasks.append(Task(
-                            id=f"task-{i}",
-                            title=title.strip(),
-                            description=description.strip(),
-                            status=TaskStatus.TODO
-                        ))
-                    else:
-                        # In case there's no ":", treat the entire line as the title
-                        tasks.append(Task(
-                            id=f"task-{i}",
-                            title=line,
-                            description="No description provided",
-                            status=TaskStatus.TODO
-                        ))
 
             project = Project(
                 id=f"proj-{str(datetime.now().timestamp())}-{project_name}",
                 name=project_name,
                 description=project_desc,
-                tasks=tasks
+                tasks=[]
             )
+            
+            # Parse task breakdown and create Task objects
+            tasks = await self.generate_task(project=project, first_though=task_breakdown)
+            project.tasks = tasks
+            
             return project
         
     async def tchat(self, project:Project, request:str) -> str:
@@ -141,4 +99,79 @@ class ProjectManagerAgent(BaseAgent):
 
             response = await ollama.generate(plan_prompt) 
             return response
+
+    async def generate_task(self, project:Project, first_though:str) -> str:
+        tasks = []
+        async with OllamaClient(self.ollama_config) as ollama:
+            i = 0
+            while i < 20:
+                task_prompt = OllamaPrompt(
+                        prompt=f"""Project Name: {project.title}
+                        Description: {project.description}
+                        
+                        --- Request
+                        Select the next task todo,
+                        express what this task depend on.
+                        generate the response as a prompt optmised for agent.
+
+                        --- previous work :
+                        {first_though}
+                        """,
+                        system="You are a technical project manager."
+                    )
+                
+                selected_task_description = await ollama.generate(task_prompt)
+
+                task_prompt = OllamaPrompt(
+                        prompt=f"""Project Name: {project.title}
+                        Description: {project.description}
+                        
+                        --- Request
+                        name this task.
+
+                        --- task description :
+                        {selected_task_description}
+                        """,
+                        system="You are a technical project manager."
+                    )
+                
+                selected_task_title = await ollama.generate(task_prompt)
+
+                task_prompt = OllamaPrompt(
+                        prompt=f"""Project Name: {project.title}
+                        Description: {project.description}
+                        
+                        --- Request
+                        mark the task done and regenerate the list.
+                        Create a detailed to-do list to build this software project.
+                        optimized it for other LLM agent.
+                        The Task list focus only on coding and dev task.
+
+                        --- task done :
+                        {selected_task_title}
+                        {selected_task_description}
+
+                        --- task list :
+                        {first_though}
+
+                        ---- Important
+                        If all task has been generate then mark the project done by returning the words 'break'
+                        """,
+                        system="You are a technical project manager."
+                    )
+                
+                first_though = await ollama.generate(task_prompt)
+
+                if "break" in first_though:
+                    break
+
+                tasks.append(Task(
+                                id=f"task-{i}",
+                                title=selected_task_title,
+                                description=selected_task_description,
+                                status=TaskStatus.TODO
+                            ))
+                i+= 1
+            
+            return tasks
 

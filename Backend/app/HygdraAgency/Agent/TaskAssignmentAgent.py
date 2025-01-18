@@ -26,7 +26,7 @@ class TaskAssignmentAgent(BaseAgent):
             OllamaModelConfig(model_name="codellama", temperature=0.2)
         )
 
-    async def analyze_task_requirements(self, task: Task) -> dict:
+    async def analyze_task_requirements(self, task: Task, task_done=List[str]) -> dict:
         async with OllamaClient(self.ollama_config) as ollama:
             prompt = OllamaPrompt(
                 prompt=f"""
@@ -40,6 +40,12 @@ class TaskAssignmentAgent(BaseAgent):
                 - complexity: Low/Medium/High
                 - estimated_duration: in hours
                 - best_role: Developer/Tester/DevOps
+
+                --- task already acheived :
+                {task_done}
+
+                --- important
+                if the task got requirement that has not been filled yet, mark it as : 'FUTURE'
 
                 """,
                 system="You are a technical project coordinator. Analyze tasks and determine required expertise."
@@ -90,6 +96,11 @@ class TaskAssignmentAgent(BaseAgent):
             task for task in project.tasks 
             if task.status == TaskStatus.TODO or task.status == TaskStatus.IN_PROGRESS
         ]
+
+        acheived_task = [
+            task.title for task in project.tasks 
+            if task.status == TaskStatus.DONE or task.status == TaskStatus.REVIEW
+        ]
         
         if not ready_tasks:
             return None, None
@@ -102,21 +113,21 @@ class TaskAssignmentAgent(BaseAgent):
 
         # best task diff best agent, select task first
         for task in ready_tasks:
-            # Get task requirements
             # task priority
-            # task dependency
-            requirements = await self.analyze_task_requirements(task)
+            # Get task requirements
+            requirements = await self.analyze_task_requirements(task, acheived_task)
             
-            # Evaluate each available agent
-            for agent in available_agents:
-                score = await self.evaluate_agent_suitability(agent, requirements)
-                
-                if score > best_score:
-                    best_score = score
-                    best_task = task
-                    best_agent = agent
-                    if best_score > 0.80:
-                        break
+            if "FUTURE" not in str(requirements).upper():
+                # Evaluate each available agent
+                for agent in available_agents:
+                    score = await self.evaluate_agent_suitability(agent, requirements)
+                    
+                    if score > best_score:
+                        best_score = score
+                        best_task = task
+                        best_agent = agent
+                        if best_score > 0.80:
+                            break
                     
             if best_score > 0.80:
                 break
