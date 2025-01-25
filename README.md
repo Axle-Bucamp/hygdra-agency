@@ -159,3 +159,6 @@ This project is licensed under the MIT License.
 - finalise the agent chain of thought and key concept
 - Dockerisation
 - prepare for distant environment and cloud server
+
+## Updated at:
+2025-01-25T07:48:25.338-05:00
